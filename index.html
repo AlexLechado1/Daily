@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Hábitos" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Mis Hábitos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --green: #1D9E75;
+      --green-light: #9FE1CB;
+      --green-xlight: #E1F5EE;
+      --bg: #ffffff;
+      --bg2: #f5f5f3;
+      --text: #1a1a18;
+      --text2: #6b6b67;
+      --text3: #9b9b97;
+      --border: rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a18;
+        --bg2: #2c2c2a;
+        --text: #f0ede6;
+        --text2: #9b9b97;
+        --text3: #6b6b67;
+        --border: rgba(255,255,255,0.1);
+        --green-xlight: #04342C;
+        --green-light: #085041;
+      }
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      padding: env(safe-area-inset-top, 16px) 20px 12px;
+      padding-top: max(env(safe-area-inset-top), 16px);
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .header .date { font-size: 14px; color: var(--text2); margin-top: 2px; }
+
+    .tabs {
+      display: flex;
+      border-bottom: 0.5px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--text2);
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+
+    .tab.active {
+      color: var(--green);
+      font-weight: 600;
+      border-bottom: 2px solid var(--green);
+    }
+
+    .view { display: none; padding: 16px 20px; flex: 1; }
+    .view.active { display: block; }
+
+    /* CHECK */
+    .habits-list { margin-bottom: 16px; }
+
+    .habit-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 15px 0;
+      border-bottom: 0.5px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .habit-item:last-child { border-bottom: none; }
+
+    .habit-check {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s;
+      border-color: var(--text3);
+    }
+
+    .habit-check.done {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .habit-check.done::after {
+      content: '';
+      width: 9px;
+      height: 5px;
+      border-left: 2.5px solid white;
+      border-bottom: 2.5px solid white;
+      transform: rotate(-45deg) translate(1px, -1px);
+      display: block;
+    }
+
+    .habit-label {
+      font-size: 16px;
+      color: var(--text);
+      transition: color 0.15s;
+    }
+
+    .habit-label.done {
+      color: var(--text3);
+      text-decoration: line-through;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .save-btn:active { transform: scale(0.98); opacity: 0.9; }
+    .save-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+    .saved-msg {
+      display: none;
+      text-align: center;
+      color: var(--green);
+      font-size: 14px;
+      padding: 10px;
+      font-weight: 500;
+    }
+
+    .day-summary {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 14px;
+    }
+
+    .day-summary span { color: var(--green); font-weight: 600; }
+
+    /* STATS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--bg2);
+      border-radius: var(--radius-sm);
+      padding: 14px 12px;
+    }
+
+    .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+    .stat-value { font-size: 24px; font-weight: 600; }
+    .stat-value.green { color: var(--green); }
+    .stat-unit { font-size: 14px; font-weight: 400; color: var(--text2); margin-left: 2px; }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .habit-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .habit-row:last-child { border-bottom: none; }
+    .habit-name { font-size: 13px; color: var(--text2); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .habit-bar-wrap { flex: 1; height: 6px; background: var(--bg2); border-radius: 3px; overflow: hidden; }
+    .habit-bar { height: 100%; background: var(--green); border-radius: 3px; }
+    .habit-pct { font-size: 12px; color: var(--text2); width: 32px; text-align: right; flex-shrink: 0; }
+
+    /* CALENDAR */
+    .cal-week-labels {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      margin-bottom: 4px;
+    }
+
+    .cal-week-label { font-size: 10px; color: var(--text3); text-align: center; }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      margin-bottom: 16px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      background: var(--bg2);
+    }
+
+    .cal-day.f25 { background: var(--green-xlight); }
+    .cal-day.f50 { background: #9FE1CB; }
+    .cal-day.f75 { background: #5DCAA5; }
+    .cal-day.f100 { background: var(--green); }
+    .cal-day.today { outline: 2px solid var(--green); outline-offset: 1px; }
+    .cal-day.future { background: transparent; }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .legend-label { font-size: 11px; color: var(--text3); }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text2);
+      font-size: 15px;
+      padding: 32px 0;
+      line-height: 1.6;
+    }
+
+    .empty-state strong { color: var(--text); display: block; font-size: 17px; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>Mis hábitos</h1>
+      <div class="date" id="hdr-date"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('check')">✓ Check</button>
+      <button class="tab" onclick="showTab('stats')">↗ Progreso</button>
+      <button class="tab" onclick="showTab('calendar')">▦ Calendario</button>
+    </div>
+
+    <div id="view-check" class="view active">
+      <div class="day-summary" id="day-summary"></div>
+      <div class="habits-list" id="habits-list"></div>
+      <button class="save-btn" id="save-btn" onclick="saveDay()">Guardar día</button>
+      <div class="saved-msg" id="saved-msg">✓ Guardado correctamente</div>
+    </div>
+
+    <div id="view-stats" class="view">
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="section-title">Por hábito</div>
+      <div id="habit-bars"></div>
+    </div>
+
+    <div id="view-calendar" class="view">
+      <div class="section-title">Últimas 8 semanas</div>
+      <div class="cal-week-labels">
+        <div class="cal-week-label">L</div>
+        <div class="cal-week-label">M</div>
+        <div class="cal-week-label">X</div>
+        <div class="cal-week-label">J</div>
+        <div class="cal-week-label">V</div>
+        <div class="cal-week-label">S</div>
+        <div class="cal-week-label">D</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="legend">
+        <span class="legend-label">Menos</span>
+        <span class="legend-swatch" style="background:var(--bg2)"></span>
+        <span class="legend-swatch" style="background:var(--green-xlight)"></span>
+        <span class="legend-swatch" style="background:#9FE1CB"></span>
+        <span class="legend-swatch" style="background:#5DCAA5"></span>
+        <span class="legend-swatch" style="background:var(--green)"></span>
+        <span class="legend-label">Más</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const HABITS = [
+      'Leer',
+      'Meditar',
+      'Querer a los míos',
+      'Deporte',
+      'Rutina de noche',
+      'Priorizar salir del trabajo'
+    ];
+
+    const KEY = 'habits_v1';
+
+    function getData() {
+      try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e) { return {}; }
+    }
+
+    function saveData(d) { localStorage.setItem(KEY, JSON.stringify(d)); }
+
+    function todayKey() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
+    function formatDate(d) {
+      return d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+    }
+
+    const data = getData();
+    const tk = todayKey();
+    let todayState = data[tk] ? [...data[tk]] : HABITS.map(() => false);
+
+    document.getElementById('hdr-date').textContent = formatDate(new Date());
+
+    function updateSummary() {
+      const done = todayState.filter(Boolean).length;
+      const el = document.getElementById('day-summary');
+      if (done === 0) {
+        el.innerHTML = 'Marca los hábitos que hayas completado hoy';
+      } else if (done === HABITS.length) {
+        el.innerHTML = '<span>¡Día perfecto! 🎯 ' + done + '/' + HABITS.length + '</span>';
+      } else {
+        el.innerHTML = '<span>' + done + '</span> de ' + HABITS.length + ' completados';
+      }
+    }
+
+    function renderCheck() {
+      const list = document.getElementById('habits-list');
+      list.innerHTML = '';
+      HABITS.forEach((h, i) => {
+        const item = document.createElement('div');
+        item.className = 'habit-item';
+        item.setAttribute('role', 'checkbox');
+        item.setAttribute('aria-checked', todayState[i]);
+        item.innerHTML =
+          '<div class="habit-check' + (todayState[i] ? ' done' : '') + '" id="chk-' + i + '"></div>' +
+          '<span class="habit-label' + (todayState[i] ? ' done' : '') + '" id="lbl-' + i + '">' + h + '</span>';
+        item.addEventListener('click', () => {
+          todayState[i] = !todayState[i];
+          document.getElementById('chk-' + i).className = 'habit-check' + (todayState[i] ? ' done' : '');
+          document.getElementById('lbl-' + i).className = 'habit-label' + (todayState[i] ? ' done' : '');
+          item.setAttribute('aria-checked', todayState[i]);
+          updateSummary();
+        });
+        list.appendChild(item);
+      });
+      updateSummary();
+    }
+
+    function saveDay() {
+      const d = getData();
+      d[tk] = [...todayState];
+      saveData(d);
+      const btn = document.getElementById('save-btn');
+      const msg = document.getElementById('saved-msg');
+      btn.disabled = true;
+      msg.style.display = 'block';
+      setTimeout(() => {
+        msg.style.display = 'none';
+        btn.disabled = false;
+      }, 2500);
+    }
+
+    function renderStats() {
+      const d = getData();
+      const days = Object.keys(d).sort();
+      const total = days.length;
+
+      if (total === 0) {
+        document.getElementById('stats-grid').innerHTML =
+          '<div class="empty-state" style="grid-column:span 2"><strong>Sin datos aún</strong>Completa tu primer día en la pestaña Check</div>';
+        document.getElementById('habit-bars').innerHTML = '';
+        return;
+      }
+
+      let streak = 0;
+      const sorted = [...days].sort().reverse();
+      for (let i = 0; i < sorted.length; i++) {
+        const expected = new Date();
+        expected.setDate(expected.getDate() - i);
+        const exp = expected.getFullYear() + '-' + String(expected.getMonth()+1).padStart(2,'0') + '-' + String(expected.getDate()).padStart(2,'0');
+        if (sorted[i] === exp) streak++;
+        else break;
+      }
+
+      const totalChecks = days.reduce((s, day) => s + (d[day] || []).filter(Boolean).length, 0);
+      const maxPossible = total * HABITS.length;
+      const pct = maxPossible ? Math.round(totalChecks / maxPossible * 100) : 0;
+      const bestDay = days.reduce((best, day) => {
+        const c = (d[day] || []).filter(Boolean).length;
+        return c > best ? c : best;
+      }, 0);
+
+      document.getElementById('stats-grid').innerHTML =
+        '<div class="stat-card"><div class="stat-label">Días registrados</div><div class="stat-value">' + total + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Racha actual</div><div class="stat-value green">' + streak + '<span class="stat-unit">días</span></div></div>' +
+        '<div class="stat-card"><div class="stat-label">Cumplimiento total</div><div class="stat-value green">' + pct + '<span class="stat-unit">%</span></div></div>' +
+        '<div class="stat-card"><div class="stat-label">Mejor día</div><div class="stat-value">' + bestDay + '<span class="stat-unit">/' + HABITS.length + '</span></div></div>';
+
+      const bars = document.getElementById('habit-bars');
+      bars.innerHTML = '';
+      HABITS.forEach((h, i) => {
+        const done = days.filter(day => (d[day] || [])[i]).length;
+        const p = total ? Math.round(done / total * 100) : 0;
+        const row = document.createElement('div');
+        row.className = 'habit-row';
+        row.innerHTML =
+          '<span class="habit-name">' + h + '</span>' +
+          '<div class="habit-bar-wrap"><div class="habit-bar" style="width:' + p + '%"></div></div>' +
+          '<span class="habit-pct">' + p + '%</span>';
+        bars.appendChild(row);
+      });
+    }
+
+    function renderCalendar() {
+      const d = getData();
+      const grid = document.getElementById('cal-grid');
+      grid.innerHTML = '';
+
+      const today = new Date();
+      const todayStr = todayKey();
+      const dow = (today.getDay() + 6) % 7;
+      const totalDays = dow + 7 * 7;
+
+      for (let i = totalDays; i >= 0; i--) {
+        const dt = new Date(today);
+        dt.setDate(dt.getDate() - i);
+        const key = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+        const rec = d[key];
+        let cls = 'cal-day';
+        if (rec) {
+          const pct = rec.filter(Boolean).length / HABITS.length;
+          if (pct >= 1) cls += ' f100';
+          else if (pct >= 0.75) cls += ' f75';
+          else if (pct >= 0.5) cls += ' f50';
+          else if (pct > 0) cls += ' f25';
+        }
+        if (key === todayStr) cls += ' today';
+        const el = document.createElement('div');
+        el.className = cls;
+        el.title = key;
+        grid.appendChild(el);
+      }
+    }
+
+    function showTab(t) {
+      document.querySelectorAll('.tab').forEach((el, i) => {
+        el.classList.toggle('active', ['check', 'stats', 'calendar'][i] === t);
+      });
+      document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+      document.getElementById('view-' + t).classList.add('active');
+      if (t === 'stats') renderStats();
+      if (t === 'calendar') renderCalendar();
+    }
+
+    renderCheck();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
