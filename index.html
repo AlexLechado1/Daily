@@ -6,23 +6,27 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Hábitos" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1a1a18" media="(prefers-color-scheme: dark)" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <title>Mis Hábitos</title>
+  <title>Mis hábitos</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     :root {
       --green: #1D9E75;
-      --green-light: #9FE1CB;
-      --green-xlight: #E1F5EE;
       --bg: #ffffff;
-      --bg2: #f5f5f3;
+      --bg2: #f3f3f0;
       --text: #1a1a18;
       --text2: #6b6b67;
       --text3: #9b9b97;
       --border: rgba(0,0,0,0.1);
+      --l1: #E1F5EE;
+      --l2: #9FE1CB;
+      --l3: #5DCAA5;
+      --l4: #1D9E75;
+      --on-l4: #ffffff;
       --radius: 12px;
       --radius-sm: 8px;
     }
@@ -30,251 +34,168 @@
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #1a1a18;
-        --bg2: #2c2c2a;
+        --bg2: #2a2a28;
         --text: #f0ede6;
-        --text2: #9b9b97;
+        --text2: #a3a39f;
         --text3: #6b6b67;
         --border: rgba(255,255,255,0.1);
-        --green-xlight: #04342C;
-        --green-light: #085041;
+        --l1: #0B3B30;
+        --l2: #0F6650;
+        --l3: #17906F;
+        --l4: #27B98A;
+        --on-l4: #0d1f19;
       }
     }
 
     html, body {
-      height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
       background: var(--bg);
       color: var(--text);
     }
 
-    .app {
-      max-width: 430px;
-      margin: 0 auto;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-    }
+    .app { max-width: 430px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
 
     .header {
-      padding: env(safe-area-inset-top, 16px) 20px 12px;
-      padding-top: max(env(safe-area-inset-top), 16px);
+      padding: max(env(safe-area-inset-top), 16px) 20px 12px;
       border-bottom: 0.5px solid var(--border);
     }
-
     .header h1 { font-size: 22px; font-weight: 600; }
     .header .date { font-size: 14px; color: var(--text2); margin-top: 2px; }
 
     .tabs {
-      display: flex;
-      border-bottom: 0.5px solid var(--border);
-      background: var(--bg);
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      display: flex; border-bottom: 0.5px solid var(--border);
+      background: var(--bg); position: sticky; top: 0; z-index: 10;
     }
-
     .tab {
-      flex: 1;
-      padding: 12px 8px;
-      font-size: 13px;
-      text-align: center;
-      cursor: pointer;
-      color: var(--text2);
-      border: none;
-      background: none;
-      border-bottom: 2px solid transparent;
+      flex: 1; padding: 12px 8px; font-size: 13px; text-align: center; cursor: pointer;
+      color: var(--text2); border: none; background: none; border-bottom: 2px solid transparent;
       font-family: inherit;
-      transition: color 0.15s;
     }
+    .tab.active { color: var(--green); font-weight: 600; border-bottom-color: var(--green); }
 
-    .tab.active {
-      color: var(--green);
-      font-weight: 600;
-      border-bottom: 2px solid var(--green);
-    }
-
-    .view { display: none; padding: 16px 20px; flex: 1; }
+    .view { display: none; padding: 16px 20px 32px; flex: 1; }
     .view.active { display: block; }
 
     /* CHECK */
-    .habits-list { margin-bottom: 16px; }
+    .editing-bar {
+      display: none; align-items: center; justify-content: space-between;
+      background: var(--bg2); border-radius: var(--radius-sm);
+      padding: 10px 12px; margin-bottom: 14px; font-size: 14px;
+    }
+    .editing-bar.show { display: flex; }
+    .link-btn { background: none; border: none; color: var(--green); font: inherit; font-weight: 600; cursor: pointer; padding: 4px; }
+
+    .progress { margin-bottom: 6px; }
+    .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .progress-count { font-size: 15px; color: var(--text2); }
+    .progress-count b { color: var(--text); font-size: 20px; }
+    .progress-msg { font-size: 13px; color: var(--green); font-weight: 600; }
+    .progress-track { height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.25s; }
 
     .habit-item {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 15px 0;
-      border-bottom: 0.5px solid var(--border);
-      cursor: pointer;
-      user-select: none;
+      display: flex; align-items: center; gap: 14px; padding: 15px 0;
+      border-bottom: 0.5px solid var(--border); cursor: pointer; user-select: none;
+      width: 100%; background: none; border-left: none; border-right: none; border-top: none;
+      font: inherit; text-align: left; color: inherit;
     }
-
     .habit-item:last-child { border-bottom: none; }
-
     .habit-check {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      border: 1.5px solid var(--border);
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.18s;
-      border-color: var(--text3);
+      width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--text3);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.18s;
     }
-
-    .habit-check.done {
-      background: var(--green);
-      border-color: var(--green);
-    }
-
+    .habit-check.done { background: var(--green); border-color: var(--green); }
     .habit-check.done::after {
-      content: '';
-      width: 9px;
-      height: 5px;
-      border-left: 2.5px solid white;
-      border-bottom: 2.5px solid white;
-      transform: rotate(-45deg) translate(1px, -1px);
-      display: block;
+      content: ''; width: 9px; height: 5px; border-left: 2.5px solid #fff; border-bottom: 2.5px solid #fff;
+      transform: rotate(-45deg) translate(1px, -1px); display: block;
     }
+    .habit-label { font-size: 16px; }
+    .habit-label.done { color: var(--text3); text-decoration: line-through; }
+    .autosave { text-align: center; font-size: 12px; color: var(--text3); margin-top: 14px; }
 
-    .habit-label {
-      font-size: 16px;
-      color: var(--text);
-      transition: color 0.15s;
+    /* SHARED */
+    .section-title {
+      font-size: 13px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.05em; margin: 22px 0 10px;
     }
+    .section-title:first-child { margin-top: 0; }
 
-    .habit-label.done {
-      color: var(--text3);
-      text-decoration: line-through;
-    }
-
-    .save-btn {
-      width: 100%;
-      padding: 15px;
-      background: var(--green);
-      color: white;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-
-    .save-btn:active { transform: scale(0.98); opacity: 0.9; }
-    .save-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
-
-    .saved-msg {
-      display: none;
-      text-align: center;
-      color: var(--green);
-      font-size: 14px;
-      padding: 10px;
-      font-weight: 500;
-    }
-
-    .day-summary {
-      text-align: center;
-      font-size: 13px;
-      color: var(--text2);
-      margin-bottom: 14px;
-    }
-
-    .day-summary span { color: var(--green); font-weight: 600; }
-
-    /* STATS */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: var(--bg2);
-      border-radius: var(--radius-sm);
-      padding: 14px 12px;
-    }
-
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat-card { background: var(--bg2); border-radius: var(--radius-sm); padding: 14px 12px; }
     .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
     .stat-value { font-size: 24px; font-weight: 600; }
-    .stat-value.green { color: var(--green); }
     .stat-unit { font-size: 14px; font-weight: 400; color: var(--text2); margin-left: 2px; }
 
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text2);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
-    }
-
-    .habit-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-      border-bottom: 0.5px solid var(--border);
-    }
-
+    .habit-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
     .habit-row:last-child { border-bottom: none; }
-    .habit-name { font-size: 13px; color: var(--text2); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .habit-name { font-size: 14px; width: 128px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .habit-bar-wrap { flex: 1; height: 6px; background: var(--bg2); border-radius: 3px; overflow: hidden; }
     .habit-bar { height: 100%; background: var(--green); border-radius: 3px; }
-    .habit-pct { font-size: 12px; color: var(--text2); width: 32px; text-align: right; flex-shrink: 0; }
+    .habit-pct { font-size: 12px; color: var(--text2); width: 44px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+    .seg { display: flex; background: var(--bg2); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 16px; }
+    .seg button {
+      flex: 1; border: none; background: none; font: inherit; font-size: 13px; color: var(--text2);
+      padding: 7px 0; border-radius: 6px; cursor: pointer;
+    }
+    .seg button.active { background: var(--bg); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+
+    .chart { width: 100%; height: auto; display: block; }
+    .chart .grid { stroke: var(--border); stroke-width: 1; }
+    .chart .axis { fill: var(--text3); font-size: 10px; font-family: inherit; }
+    .chart .bar { fill: var(--green); }
+    .chart .bar.sel { fill: var(--l3); }
+    .chart .hit { fill: transparent; cursor: pointer; }
+    .chart-tip { font-size: 13px; color: var(--text2); text-align: center; margin-top: 6px; min-height: 18px; }
 
     /* CALENDAR */
-    .cal-week-labels {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 3px;
-      margin-bottom: 4px;
+    .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .month-nav h2 { font-size: 17px; font-weight: 600; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--bg2);
+      color: var(--text); font-size: 20px; line-height: 1; cursor: pointer;
     }
+    .icon-btn:disabled { opacity: 0.3; cursor: default; }
 
-    .cal-week-label { font-size: 10px; color: var(--text3); text-align: center; }
-
-    .cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 3px;
-      margin-bottom: 16px;
-    }
+    .cal-head, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-head { margin-bottom: 4px; }
+    .cal-head div { font-size: 11px; color: var(--text3); text-align: center; }
 
     .cal-day {
-      aspect-ratio: 1;
-      border-radius: 3px;
-      background: var(--bg2);
+      aspect-ratio: 1; border-radius: var(--radius-sm); border: none; background: var(--bg2);
+      color: var(--text); font: inherit; cursor: pointer; position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     }
+    .cal-day .n { font-size: 11px; color: var(--text2); line-height: 1; }
+    .cal-day .c { font-size: 15px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .cal-day.empty { background: transparent; cursor: default; }
+    .cal-day.future { background: transparent; cursor: default; }
+    .cal-day.future .n { color: var(--text3); }
+    .cal-day.l1 { background: var(--l1); }
+    .cal-day.l2 { background: var(--l2); }
+    .cal-day.l3 { background: var(--l3); }
+    .cal-day.l4 { background: var(--l4); }
+    .cal-day.l3 .n, .cal-day.l3 .c { color: #08372c; }
+    .cal-day.l4 .n, .cal-day.l4 .c { color: var(--on-l4); }
+    .cal-day.today { box-shadow: inset 0 0 0 2px var(--text); }
+    .cal-day.selected { outline: 2px solid var(--green); outline-offset: 2px; }
 
-    .cal-day.f25 { background: var(--green-xlight); }
-    .cal-day.f50 { background: #9FE1CB; }
-    .cal-day.f75 { background: #5DCAA5; }
-    .cal-day.f100 { background: var(--green); }
-    .cal-day.today { outline: 2px solid var(--green); outline-offset: 1px; }
-    .cal-day.future { background: transparent; }
-
-    .legend {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
+    .legend { display: flex; align-items: center; gap: 5px; margin-top: 10px; justify-content: flex-end; }
     .legend-label { font-size: 11px; color: var(--text3); }
-    .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
 
-    .empty-state {
-      text-align: center;
-      color: var(--text2);
-      font-size: 15px;
-      padding: 32px 0;
-      line-height: 1.6;
-    }
+    .detail { background: var(--bg2); border-radius: var(--radius); padding: 14px 14px 8px; margin-top: 16px; }
+    .detail-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .detail-title { font-size: 15px; font-weight: 600; }
+    .detail-count { font-size: 13px; color: var(--text2); }
+    .detail-list { list-style: none; }
+    .detail-list li { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; border-top: 0.5px solid var(--border); }
+    .dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+    .dot.yes { background: var(--green); color: #fff; }
+    .dot.no { border: 1.5px solid var(--text3); color: var(--text3); }
+    .detail-list li.miss { color: var(--text2); }
 
+    .empty-state { text-align: center; color: var(--text2); font-size: 15px; padding: 32px 0; line-height: 1.6; }
     .empty-state strong { color: var(--text); display: block; font-size: 17px; margin-bottom: 6px; }
   </style>
 </head>
@@ -285,228 +206,406 @@
       <div class="date" id="hdr-date"></div>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" onclick="showTab('check')">✓ Check</button>
-      <button class="tab" onclick="showTab('stats')">↗ Progreso</button>
-      <button class="tab" onclick="showTab('calendar')">▦ Calendario</button>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="check">✓ Hoy</button>
+      <button class="tab" data-tab="calendar">▦ Calendario</button>
+      <button class="tab" data-tab="stats">↗ Progreso</button>
     </div>
 
     <div id="view-check" class="view active">
-      <div class="day-summary" id="day-summary"></div>
-      <div class="habits-list" id="habits-list"></div>
-      <button class="save-btn" id="save-btn" onclick="saveDay()">Guardar día</button>
-      <div class="saved-msg" id="saved-msg">✓ Guardado correctamente</div>
-    </div>
-
-    <div id="view-stats" class="view">
-      <div class="stats-grid" id="stats-grid"></div>
-      <div class="section-title">Por hábito</div>
-      <div id="habit-bars"></div>
+      <div class="editing-bar" id="editing-bar">
+        <span id="editing-label"></span>
+        <button class="link-btn" id="back-today">Volver a hoy</button>
+      </div>
+      <div class="progress">
+        <div class="progress-top">
+          <div class="progress-count" id="progress-count"></div>
+          <div class="progress-msg" id="progress-msg"></div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+      <div id="habits-list"></div>
+      <div class="autosave">Se guarda automáticamente</div>
     </div>
 
     <div id="view-calendar" class="view">
-      <div class="section-title">Últimas 8 semanas</div>
-      <div class="cal-week-labels">
-        <div class="cal-week-label">L</div>
-        <div class="cal-week-label">M</div>
-        <div class="cal-week-label">X</div>
-        <div class="cal-week-label">J</div>
-        <div class="cal-week-label">V</div>
-        <div class="cal-week-label">S</div>
-        <div class="cal-week-label">D</div>
+      <div class="month-nav">
+        <button class="icon-btn" id="prev-month" aria-label="Mes anterior">‹</button>
+        <h2 id="month-label"></h2>
+        <button class="icon-btn" id="next-month" aria-label="Mes siguiente">›</button>
       </div>
+      <div class="cal-head"><div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
       <div class="cal-grid" id="cal-grid"></div>
-      <div class="legend">
-        <span class="legend-label">Menos</span>
-        <span class="legend-swatch" style="background:var(--bg2)"></span>
-        <span class="legend-swatch" style="background:var(--green-xlight)"></span>
-        <span class="legend-swatch" style="background:#9FE1CB"></span>
-        <span class="legend-swatch" style="background:#5DCAA5"></span>
-        <span class="legend-swatch" style="background:var(--green)"></span>
-        <span class="legend-label">Más</span>
+      <div class="legend" id="legend"></div>
+      <div class="detail" id="day-detail"></div>
+      <div class="section-title">Resumen del mes</div>
+      <div id="month-summary"></div>
+    </div>
+
+    <div id="view-stats" class="view">
+      <div class="seg" id="period-seg">
+        <button data-p="7">7 días</button>
+        <button data-p="30" class="active">30 días</button>
+        <button data-p="0">Todo</button>
       </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="section-title">Evolución semanal</div>
+      <div id="week-chart"></div>
+      <div class="chart-tip" id="chart-tip">Toca una barra para ver el detalle</div>
+      <div class="section-title">Por hábito</div>
+      <div id="habit-bars"></div>
     </div>
   </div>
 
   <script>
+    // Habits to track. "since" = first day the habit counts (older days are not penalised).
     const HABITS = [
-      'Leer',
-      'Meditar',
-      'Querer a los míos',
-      'Deporte',
-      'Rutina de noche',
-      'Priorizar salir del trabajo'
+      { id: 'deporte',        name: 'Deporte' },
+      { id: 'no-fumar',       name: 'No fumar',       since: '2026-10-27' },
+      { id: 'querer',         name: 'Querer a los míos' },
+      { id: 'dejarse-llevar', name: 'Dejarse llevar', since: '2026-10-27' },
+      { id: 'rutina-noche',   name: 'Rutina de noche' },
+      { id: 'meditar',        name: 'Meditar' },
+      { id: 'leer',           name: 'Leer' }
     ];
 
-    const KEY = 'habits_v1';
+    // Order of the first version, used once to migrate old data by name.
+    const V1_IDS = ['leer', 'meditar', 'querer', 'deporte', 'rutina-noche', 'priorizar-trabajo'];
+    const K1 = 'habits_v1';
+    const K2 = 'habits_v2';
 
-    function getData() {
-      try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e) { return {}; }
-    }
+    const $ = id => document.getElementById(id);
+    const pad = n => String(n).padStart(2, '0');
+    const keyOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const fromKey = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+    const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+    const today0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-    function saveData(d) { localStorage.setItem(KEY, JSON.stringify(d)); }
-
-    function todayKey() {
-      const d = new Date();
-      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    }
-
-    function formatDate(d) {
-      return d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
-    }
-
-    const data = getData();
-    const tk = todayKey();
-    let todayState = data[tk] ? [...data[tk]] : HABITS.map(() => false);
-
-    document.getElementById('hdr-date').textContent = formatDate(new Date());
-
-    function updateSummary() {
-      const done = todayState.filter(Boolean).length;
-      const el = document.getElementById('day-summary');
-      if (done === 0) {
-        el.innerHTML = 'Marca los hábitos que hayas completado hoy';
-      } else if (done === HABITS.length) {
-        el.innerHTML = '<span>¡Día perfecto! 🎯 ' + done + '/' + HABITS.length + '</span>';
-      } else {
-        el.innerHTML = '<span>' + done + '</span> de ' + HABITS.length + ' completados';
-      }
-    }
-
-    function renderCheck() {
-      const list = document.getElementById('habits-list');
-      list.innerHTML = '';
-      HABITS.forEach((h, i) => {
-        const item = document.createElement('div');
-        item.className = 'habit-item';
-        item.setAttribute('role', 'checkbox');
-        item.setAttribute('aria-checked', todayState[i]);
-        item.innerHTML =
-          '<div class="habit-check' + (todayState[i] ? ' done' : '') + '" id="chk-' + i + '"></div>' +
-          '<span class="habit-label' + (todayState[i] ? ' done' : '') + '" id="lbl-' + i + '">' + h + '</span>';
-        item.addEventListener('click', () => {
-          todayState[i] = !todayState[i];
-          document.getElementById('chk-' + i).className = 'habit-check' + (todayState[i] ? ' done' : '');
-          document.getElementById('lbl-' + i).className = 'habit-label' + (todayState[i] ? ' done' : '');
-          item.setAttribute('aria-checked', todayState[i]);
-          updateSummary();
+    function load() {
+      try {
+        const s = JSON.parse(localStorage.getItem(K2));
+        if (s && s.days) return s;
+      } catch (e) {}
+      // Migrate v1 (arrays by position). v1 is left untouched as a backup.
+      const days = {};
+      try {
+        const v1 = JSON.parse(localStorage.getItem(K1)) || {};
+        Object.keys(v1).forEach(k => {
+          const o = {};
+          (v1[k] || []).forEach((v, i) => { if (v && V1_IDS[i]) o[V1_IDS[i]] = true; });
+          days[k] = o;
         });
-        list.appendChild(item);
+      } catch (e) {}
+      const s = { version: 2, days };
+      persist(s);
+      return s;
+    }
+
+    function persist(s) {
+      try { localStorage.setItem(K2, JSON.stringify(s)); } catch (e) { alert('No se ha podido guardar'); }
+    }
+
+    const S = load();
+    let curKey = keyOf(today0());
+    let calMonth = new Date(today0().getFullYear(), today0().getMonth(), 1);
+    let selKey = keyOf(today0());
+    let period = 30;
+
+    const activeOn = k => HABITS.filter(h => !h.since || h.since <= k);
+    function dayStat(k) {
+      const act = activeOn(k);
+      const rec = S.days[k] || {};
+      const done = act.filter(h => rec[h.id]);
+      return { act, done, total: act.length, n: done.length, pct: act.length ? done.length / act.length : 0, has: !!S.days[k] };
+    }
+    const level = p => p >= 1 ? 4 : p >= 0.66 ? 3 : p >= 0.33 ? 2 : p > 0 ? 1 : 0;
+
+    function firstKey() {
+      const ks = Object.keys(S.days).filter(k => Object.keys(S.days[k]).length).sort();
+      return ks[0] || null;
+    }
+
+    /* ---------- HOY ---------- */
+    function renderCheck() {
+      const isToday = curKey === keyOf(today0());
+      const d = fromKey(curKey);
+      $('editing-bar').classList.toggle('show', !isToday);
+      $('editing-label').textContent = 'Editando: ' + d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+
+      const st = dayStat(curKey);
+      $('progress-count').innerHTML = '<b>' + st.n + '</b> de ' + st.total;
+      $('progress-msg').textContent = st.n === st.total ? 'Día perfecto 🎯' : '';
+      $('progress-fill').style.width = Math.round(st.pct * 100) + '%';
+
+      const rec = S.days[curKey] || {};
+      const list = $('habits-list');
+      list.innerHTML = '';
+      st.act.forEach(h => {
+        const on = !!rec[h.id];
+        const b = document.createElement('button');
+        b.className = 'habit-item';
+        b.setAttribute('role', 'checkbox');
+        b.setAttribute('aria-checked', on);
+        b.innerHTML = '<span class="habit-check' + (on ? ' done' : '') + '"></span><span class="habit-label' + (on ? ' done' : '') + '"></span>';
+        b.lastChild.textContent = h.name;
+        b.addEventListener('click', () => toggle(h.id));
+        list.appendChild(b);
       });
-      updateSummary();
     }
 
-    function saveDay() {
-      const d = getData();
-      d[tk] = [...todayState];
-      saveData(d);
-      const btn = document.getElementById('save-btn');
-      const msg = document.getElementById('saved-msg');
-      btn.disabled = true;
-      msg.style.display = 'block';
-      setTimeout(() => {
-        msg.style.display = 'none';
-        btn.disabled = false;
-      }, 2500);
+    function toggle(id) {
+      const rec = S.days[curKey] || (S.days[curKey] = {});
+      if (rec[id]) delete rec[id]; else rec[id] = true;
+      persist(S);
+      if (navigator.vibrate) navigator.vibrate(8);
+      renderCheck();
     }
 
-    function renderStats() {
-      const d = getData();
-      const days = Object.keys(d).sort();
-      const total = days.length;
+    $('back-today').addEventListener('click', () => { curKey = keyOf(today0()); renderCheck(); });
 
-      if (total === 0) {
-        document.getElementById('stats-grid').innerHTML =
-          '<div class="empty-state" style="grid-column:span 2"><strong>Sin datos aún</strong>Completa tu primer día en la pestaña Check</div>';
-        document.getElementById('habit-bars').innerHTML = '';
+    /* ---------- CALENDARIO ---------- */
+    function renderCalendar() {
+      const t = today0();
+      const tk = keyOf(t);
+      const y = calMonth.getFullYear(), m = calMonth.getMonth();
+      $('month-label').textContent = cap(calMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+      $('next-month').disabled = y === t.getFullYear() && m === t.getMonth();
+
+      const grid = $('cal-grid');
+      grid.innerHTML = '';
+      const lead = (new Date(y, m, 1).getDay() + 6) % 7;
+      const nDays = new Date(y, m + 1, 0).getDate();
+      for (let i = 0; i < lead; i++) {
+        const e = document.createElement('div');
+        e.className = 'cal-day empty';
+        grid.appendChild(e);
+      }
+      for (let d = 1; d <= nDays; d++) {
+        const k = keyOf(new Date(y, m, d));
+        const el = document.createElement('button');
+        let cls = 'cal-day';
+        let inner = '<span class="n">' + d + '</span>';
+        if (k > tk) {
+          cls += ' future';
+          el.disabled = true;
+        } else {
+          const st = dayStat(k);
+          if (st.has) {
+            cls += ' l' + level(st.pct);
+            inner += '<span class="c">' + st.n + '</span>';
+          }
+          el.setAttribute('aria-label', d + ': ' + st.n + ' de ' + st.total);
+          el.addEventListener('click', () => { selKey = k; renderCalendar(); });
+        }
+        if (k === tk) cls += ' today';
+        if (k === selKey) cls += ' selected';
+        el.className = cls;
+        el.innerHTML = inner;
+        grid.appendChild(el);
+      }
+
+      const max = HABITS.length;
+      $('legend').innerHTML = '<span class="legend-label">0</span>' +
+        ['var(--bg2)', 'var(--l1)', 'var(--l2)', 'var(--l3)', 'var(--l4)']
+          .map(c => '<span class="legend-swatch" style="background:' + c + '"></span>').join('') +
+        '<span class="legend-label">' + max + '</span>';
+
+      renderDetail();
+      renderMonthSummary();
+    }
+
+    function renderDetail() {
+      const box = $('day-detail');
+      const st = dayStat(selKey);
+      const rec = S.days[selKey] || {};
+      const d = fromKey(selKey);
+      const title = selKey === keyOf(today0()) ? 'Hoy' : cap(d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }));
+      const items = st.act
+        .slice()
+        .sort((a, b) => (rec[b.id] ? 1 : 0) - (rec[a.id] ? 1 : 0))
+        .map(h => rec[h.id]
+          ? '<li><span class="dot yes">✓</span>' + h.name + '</li>'
+          : '<li class="miss"><span class="dot no"></span>' + h.name + '</li>')
+        .join('');
+      box.innerHTML =
+        '<div class="detail-head"><span class="detail-title">' + title + '</span>' +
+        '<span class="detail-count">' + (st.has ? st.n + ' de ' + st.total : 'Sin registro') + '</span></div>' +
+        '<ul class="detail-list">' + items + '</ul>' +
+        '<div style="text-align:right;padding:4px 0 6px"><button class="link-btn" id="edit-day">Editar este día</button></div>';
+      $('edit-day').addEventListener('click', () => { curKey = selKey; showTab('check'); });
+    }
+
+    function renderMonthSummary() {
+      const t = today0();
+      const y = calMonth.getFullYear(), m = calMonth.getMonth();
+      const fk = firstKey();
+      const keys = [];
+      const last = (y === t.getFullYear() && m === t.getMonth()) ? t.getDate() : new Date(y, m + 1, 0).getDate();
+      for (let d = 1; d <= last; d++) {
+        const k = keyOf(new Date(y, m, d));
+        if (fk && k >= fk) keys.push(k);
+      }
+      habitRows($('month-summary'), keys, true);
+    }
+
+    $('prev-month').addEventListener('click', () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1); renderCalendar(); });
+    $('next-month').addEventListener('click', () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); renderCalendar(); });
+
+    /* ---------- PROGRESO ---------- */
+    // Days counted: from first record to today; today only counts once something is marked.
+    function periodKeys(n) {
+      const fk = firstKey();
+      if (!fk) return [];
+      const t = today0();
+      const tk = keyOf(t);
+      const out = [];
+      let d = n ? addDays(t, -(n - 1)) : fromKey(fk);
+      while (d <= t) {
+        const k = keyOf(d);
+        if (k >= fk && (k !== tk || S.days[k])) out.push(k);
+        d = addDays(d, 1);
+      }
+      return out;
+    }
+
+    function habitRows(container, keys, asCount) {
+      container.innerHTML = '';
+      if (!keys.length) {
+        container.innerHTML = '<div class="empty-state"><strong>Sin datos</strong>Marca tus hábitos en la pestaña Hoy</div>';
         return;
       }
-
-      let streak = 0;
-      const sorted = [...days].sort().reverse();
-      for (let i = 0; i < sorted.length; i++) {
-        const expected = new Date();
-        expected.setDate(expected.getDate() - i);
-        const exp = expected.getFullYear() + '-' + String(expected.getMonth()+1).padStart(2,'0') + '-' + String(expected.getDate()).padStart(2,'0');
-        if (sorted[i] === exp) streak++;
-        else break;
-      }
-
-      const totalChecks = days.reduce((s, day) => s + (d[day] || []).filter(Boolean).length, 0);
-      const maxPossible = total * HABITS.length;
-      const pct = maxPossible ? Math.round(totalChecks / maxPossible * 100) : 0;
-      const bestDay = days.reduce((best, day) => {
-        const c = (d[day] || []).filter(Boolean).length;
-        return c > best ? c : best;
-      }, 0);
-
-      document.getElementById('stats-grid').innerHTML =
-        '<div class="stat-card"><div class="stat-label">Días registrados</div><div class="stat-value">' + total + '</div></div>' +
-        '<div class="stat-card"><div class="stat-label">Racha actual</div><div class="stat-value green">' + streak + '<span class="stat-unit">días</span></div></div>' +
-        '<div class="stat-card"><div class="stat-label">Cumplimiento total</div><div class="stat-value green">' + pct + '<span class="stat-unit">%</span></div></div>' +
-        '<div class="stat-card"><div class="stat-label">Mejor día</div><div class="stat-value">' + bestDay + '<span class="stat-unit">/' + HABITS.length + '</span></div></div>';
-
-      const bars = document.getElementById('habit-bars');
-      bars.innerHTML = '';
-      HABITS.forEach((h, i) => {
-        const done = days.filter(day => (d[day] || [])[i]).length;
-        const p = total ? Math.round(done / total * 100) : 0;
+      HABITS.forEach(h => {
+        const ks = keys.filter(k => !h.since || h.since <= k);
+        const done = ks.filter(k => (S.days[k] || {})[h.id]).length;
+        const p = ks.length ? Math.round(done / ks.length * 100) : 0;
         const row = document.createElement('div');
         row.className = 'habit-row';
         row.innerHTML =
-          '<span class="habit-name">' + h + '</span>' +
+          '<span class="habit-name"></span>' +
           '<div class="habit-bar-wrap"><div class="habit-bar" style="width:' + p + '%"></div></div>' +
-          '<span class="habit-pct">' + p + '%</span>';
-        bars.appendChild(row);
+          '<span class="habit-pct">' + (asCount ? done + '/' + ks.length : p + '%') + '</span>';
+        row.firstChild.textContent = h.name;
+        container.appendChild(row);
       });
     }
 
-    function renderCalendar() {
-      const d = getData();
-      const grid = document.getElementById('cal-grid');
-      grid.innerHTML = '';
+    function streak() {
+      const fk = firstKey();
+      if (!fk) return 0;
+      const good = k => dayStat(k).pct >= 0.5;
+      let d = today0();
+      if (!good(keyOf(d))) d = addDays(d, -1);
+      let n = 0;
+      while (keyOf(d) >= fk && good(keyOf(d))) { n++; d = addDays(d, -1); }
+      return n;
+    }
 
-      const today = new Date();
-      const todayStr = todayKey();
-      const dow = (today.getDay() + 6) % 7;
-      const totalDays = dow + 7 * 7;
+    function renderStats() {
+      const keys = periodKeys(period);
+      let done = 0, total = 0, perfect = 0;
+      keys.forEach(k => { const s = dayStat(k); done += s.n; total += s.total; if (s.total && s.n === s.total) perfect++; });
+      const pct = total ? Math.round(done / total * 100) : 0;
+      const avg = keys.length ? (done / keys.length).toFixed(1).replace('.', ',') : '0';
 
-      for (let i = totalDays; i >= 0; i--) {
-        const dt = new Date(today);
-        dt.setDate(dt.getDate() - i);
-        const key = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
-        const rec = d[key];
-        let cls = 'cal-day';
-        if (rec) {
-          const pct = rec.filter(Boolean).length / HABITS.length;
-          if (pct >= 1) cls += ' f100';
-          else if (pct >= 0.75) cls += ' f75';
-          else if (pct >= 0.5) cls += ' f50';
-          else if (pct > 0) cls += ' f25';
+      $('stats-grid').innerHTML =
+        card('Cumplimiento', pct, '%') +
+        card('Media diaria', avg, '/' + HABITS.length) +
+        card('Racha (≥50%)', streak(), 'días') +
+        card('Días perfectos', perfect, '');
+      habitRows($('habit-bars'), keys, false);
+      renderWeekChart();
+    }
+
+    // Last 12 weeks (Mon to Sun), % of habits completed over the days counted.
+    function renderWeekChart() {
+      const counted = new Set(periodKeys(0));
+      const t = today0();
+      const monday = addDays(t, -((t.getDay() + 6) % 7));
+      const weeks = [];
+      for (let w = 11; w >= 0; w--) {
+        const start = addDays(monday, -7 * w);
+        let done = 0, total = 0;
+        for (let i = 0; i < 7; i++) {
+          const k = keyOf(addDays(start, i));
+          if (!counted.has(k)) continue;
+          const s = dayStat(k);
+          done += s.n; total += s.total;
         }
-        if (key === todayStr) cls += ' today';
-        const el = document.createElement('div');
-        el.className = cls;
-        el.title = key;
-        grid.appendChild(el);
+        weeks.push({ start, v: total ? done / total : null });
       }
-    }
+      const box = $('week-chart');
+      if (!weeks.some(w => w.v !== null)) { box.innerHTML = ''; $('chart-tip').textContent = ''; return; }
 
-    function showTab(t) {
-      document.querySelectorAll('.tab').forEach((el, i) => {
-        el.classList.toggle('active', ['check', 'stats', 'calendar'][i] === t);
+      const W = 350, H = 150, pl = 30, pt = 8, pb = 22;
+      const ch = H - pt - pb, cw = (W - pl) / weeks.length, bw = cw - 6;
+      let s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cumplimiento por semana">';
+      [0, 0.5, 1].forEach(g => {
+        const y = pt + ch * (1 - g);
+        s += '<line class="grid" x1="' + pl + '" x2="' + W + '" y1="' + y + '" y2="' + y + '"/>' +
+             '<text class="axis" x="' + (pl - 5) + '" y="' + (y + 3) + '" text-anchor="end">' + (g * 100) + '%</text>';
       });
+      weeks.forEach((w, i) => {
+        const x = pl + i * cw + 3;
+        if (w.v !== null) {
+          const h = Math.max(2, ch * w.v), y = pt + ch - h, r = Math.min(4, bw / 2, h);
+          // rounded top, square base
+          s += '<path class="bar" data-i="' + i + '" d="M' + x + ',' + (pt + ch) + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y +
+               'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + y + ' ' + (x + bw) + ',' + (y + r) + 'V' + (pt + ch) + 'Z"/>';
+        }
+        if (i % 2 === 1 || i === weeks.length - 1) {
+          s += '<text class="axis" x="' + (x + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + w.start.getDate() + '/' + (w.start.getMonth() + 1) + '</text>';
+        }
+        s += '<rect class="hit" data-i="' + i + '" x="' + (pl + i * cw) + '" y="0" width="' + cw + '" height="' + H + '"/>';
+      });
+      box.innerHTML = s + '</svg>';
+
+      const tip = $('chart-tip');
+      tip.textContent = 'Toca una barra para ver el detalle';
+      box.querySelectorAll('.hit').forEach(el => el.addEventListener('click', () => {
+        const i = Number(el.dataset.i), w = weeks[i];
+        box.querySelectorAll('.bar').forEach(b => b.classList.toggle('sel', Number(b.dataset.i) === i));
+        const end = addDays(w.start, 6);
+        tip.textContent = 'Semana del ' + w.start.getDate() + '/' + (w.start.getMonth() + 1) + ' al ' + end.getDate() + '/' + (end.getMonth() + 1) + ': ' +
+          (w.v === null ? 'sin registro' : Math.round(w.v * 100) + '%');
+      }));
+    }
+    const card = (l, v, u) => '<div class="stat-card"><div class="stat-label">' + l + '</div><div class="stat-value">' + v + '<span class="stat-unit">' + u + '</span></div></div>';
+
+    $('period-seg').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      period = Number(b.dataset.p);
+      $('period-seg').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+      renderStats();
+    });
+
+    /* ---------- TABS ---------- */
+    function showTab(t) {
+      document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.tab === t));
       document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-      document.getElementById('view-' + t).classList.add('active');
+      $('view-' + t).classList.add('active');
+      if (t === 'check') renderCheck();
       if (t === 'stats') renderStats();
       if (t === 'calendar') renderCalendar();
+      window.scrollTo(0, 0);
     }
+    document.querySelectorAll('.tab').forEach(el => el.addEventListener('click', () => showTab(el.dataset.tab)));
 
+    // If the app stays open past midnight, jump to the new day when it comes back.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      const tk = keyOf(today0());
+      $('hdr-date').textContent = cap(new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }));
+      if (selKey > tk) selKey = tk;
+      if ($('view-check').classList.contains('active') && !$('editing-bar').classList.contains('show')) curKey = tk;
+      renderCheck();
+    });
+
+    $('hdr-date').textContent = cap(new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }));
     renderCheck();
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
   </script>
 </body>
 </html>
